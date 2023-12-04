@@ -161,7 +161,7 @@ def move(movement):
     return 0
 
 
-#####CODE STARTS HERE
+#####CODE STARTS HERE!
 playsound("Epiano Startup.wav")
 while True:
     try:
