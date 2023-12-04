@@ -172,7 +172,7 @@ while True:
                     playsound('Epiano Wake Up heard.wav')
                     voiceCommand = getSpeech()
                     # answer = verbalResponseGenerator Need to define a function that responds to the question, with gpt.
-                    # speak()
+                    #speak()
                     rawMovementInstruction = processVoiceMovementInstruction(voiceCommand)
                     movementInstruction = processRawMovementInstruction(rawMovementInstruction)
                     if movementInstruction[1] is True:
