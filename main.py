@@ -104,66 +104,66 @@ def seekObject(objectName):
         timeout_start = time.time()
         object_last_seen_x = None
         object_reached = False
-        while object_reached == False:
-            print(forward_gain,rotation_gain)
-            while time.time() < timeout_start + 10:
-                object_in_frame = False
-                success, img = cap.read()
-                results = model(img, stream=True)
-                for r in results:
-                    boxes = r.boxes
-                    for box in boxes:
-                        # bounding box
-                        x1, y1, x2, y2 = box.xyxy[0]
-                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
-                        object_box_area = (abs(x2-x1)*abs(y2-y1))
-                        cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+        forward_gain = 0
+        rotation_gain = 0
 
-                        cls = int(box.cls[0])
-                        if object == classNames[cls]:
-                            object_in_frame = True
-                            timeout_start = time.time()
-                            print(f"Found {object}!" )
-                            object_last_seen_x = x1+(abs(x2-x1)/2)
-                            if object_box_area > resolution[1]*resolution[0]*desired_pixel_occupancy:
-                                object_reached = True
-                                print("Object Reached!")
-                                return True
+        while time.time() < timeout_start + 10:
+            object_in_frame = False
+            success, img = cap.read()
+            results = model(img, stream=True)
+            for r in results:
+                boxes = r.boxes
+                for box in boxes:
+                    # bounding box
+                    x1, y1, x2, y2 = box.xyxy[0]
+                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
+                    object_box_area = (abs(x2-x1)*abs(y2-y1))
+                    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
 
-                            elif object_last_seen_x < center_zone_for_object[1] and object_last_seen_x > center_zone_for_object[0]:
-                                forward_gain = desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area-1 if (
-                                        desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area > 1) else 0
-                            else:
-                                rotation_gain = 1/(resolution[0]/2)-object_last_seen_x
-                            break
-                        # object details
-                        org = [x1, y1]
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        fontScale = 1
-                        color = (255, 0, 0)
-                        thickness = 2
-                        cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
-                if object_in_frame == False:
-                    if object_last_seen_x is not None and object_last_seen_x > resolution[0]/2:
-                        forward_gain = 0
-                        rotation_gain = 1
-                        print("Rotating Right")
-                    elif object_last_seen_x is not None and object_last_seen_x < resolution[0]/2 and object_last_seen_x > 0:
-                        moving_forward = 0
-                        rotation_gain = -1
-                        rotation_gain = 0
-                        print("Rotating Left")
-                    elif object_last_seen_x is None:
-                        rotation_gain = 1
-                cv2.imshow('Webcam', img)
-                if cv2.waitKey(1) == ord('q'):
-                    break
+                    cls = int(box.cls[0])
+                    if object == classNames[cls]:
+                        object_in_frame = True
+                        timeout_start = time.time()
+                        print(f"Found {object}!" )
+                        object_last_seen_x = x1+(abs(x2-x1)/2)
+                        if object_box_area > resolution[1]*resolution[0]*desired_pixel_occupancy:
+                            object_reached = True
+                            print("Object Reached!")
+                            return True
+
+                        elif object_last_seen_x < center_zone_for_object[1] and object_last_seen_x > center_zone_for_object[0]:
+                            forward_gain = desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area-1 if (
+                                    desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area > 1) else 0
+                            print(f"moving forward gain is: {forward_gain}")
+                        else:
+                            rotation_gain = 1/(resolution[0]/2)-object_last_seen_x
+                            print(f"rotation forward gain is: {rotation_gain}")
+                        break
+                    # object details
+                    org = [x1, y1]
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    fontScale = 1
+                    color = (255, 0, 0)
+                    thickness = 2
+                    cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
+            if object_in_frame == False:
+                if object_last_seen_x is not None and object_last_seen_x > resolution[0]/2:
+                    forward_gain = 0
+                    rotation_gain = 1
+                    print("Rotating Right")
+                elif object_last_seen_x is not None and object_last_seen_x < resolution[0]/2 and object_last_seen_x > 0:
+                    moving_forward = 0
+                    rotation_gain = -1
+                    rotation_gain = 0
+                    print("Rotating Left")
+                elif object_last_seen_x is None:
+                    rotation_gain = 1
+            cv2.imshow('Webcam', img)
+            if cv2.waitKey(1) == ord('q'):
+                break
 
         cap.release()
         cv2.destroyAllWindows()
-
-
-
     except Exception as e:
         print(e)
         return False
