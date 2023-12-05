@@ -94,6 +94,7 @@ def seekObject(objectName):
                 raise Exception("Object Unknown To System.")
         cap = cv2.VideoCapture(0)
         resolution = (640,480)
+        total_area = resolution[0]*resolution[1]
         center_zone_for_object = (0.25*resolution[0],0.75*resolution[0])
         desired_pixel_occupancy = 2/3
         cap.set(3, resolution[0])
@@ -103,59 +104,58 @@ def seekObject(objectName):
 
         timeout_start = time.time()
         object_last_seen_x = None
-        object_reached = False
         forward_gain = 0
         rotation_gain = 0
 
         while time.time() < timeout_start + 10:
+            gain_vector = (rotation_gain,forward_gain)
+            move(gain_vector)
             object_in_frame = False
             success, img = cap.read()
             results = model(img, stream=True)
             for r in results:
                 boxes = r.boxes
                 for box in boxes:
-                    # bounding box
-                    x1, y1, x2, y2 = box.xyxy[0]
-                    x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
-                    object_box_area = (abs(x2-x1)*abs(y2-y1))
-                    cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-
                     cls = int(box.cls[0])
                     if object == classNames[cls]:
                         object_in_frame = True
                         timeout_start = time.time()
                         print(f"Found {object}!" )
+                        x1, y1, x2, y2 = box.xyxy[0]
+                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
+                        object_box_area = (abs(x2 - x1) * abs(y2 - y1))
+                        cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
                         object_last_seen_x = x1+(abs(x2-x1)/2)
+                        org = [x1, y1]
+                        font = cv2.FONT_HERSHEY_SIMPLEX
+                        fontScale = 1
+                        color = (255, 0, 0)
+                        thickness = 2
+                        cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
                         if object_box_area > resolution[1]*resolution[0]*desired_pixel_occupancy:
-                            object_reached = True
                             print("Object Reached!")
                             return True
 
                         elif object_last_seen_x < center_zone_for_object[1] and object_last_seen_x > center_zone_for_object[0]:
-                            forward_gain = desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area-1 if (
-                                    desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area > 1) else 0
-                            print(f"moving forward gain is: {forward_gain}")
+                            forward_gain = (total_area*desired_pixel_occupancy-object_box_area)/total_area*desired_pixel_occupancy
+                            print(f"Object ahead! \n"
+                                  f"Moving forward gain is: {forward_gain}")
                         else:
-                            rotation_gain = 1/(resolution[0]/2)-object_last_seen_x
-                            print(f"rotation forward gain is: {rotation_gain}")
+                            rotation_gain = -(resolution[0]/2-object_last_seen_x)/(resolution[0]/2)
+                            print(f"Rotating towards object.\n"
+                                  f"Rotation gain is: {rotation_gain}")
                         break
                     # object details
-                    org = [x1, y1]
-                    font = cv2.FONT_HERSHEY_SIMPLEX
-                    fontScale = 1
-                    color = (255, 0, 0)
-                    thickness = 2
-                    cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
+
             if object_in_frame == False:
                 if object_last_seen_x is not None and object_last_seen_x > resolution[0]/2:
                     forward_gain = 0
                     rotation_gain = 1
-                    print("Rotating Right")
+                    print("Searching for object: Rotating Right")
                 elif object_last_seen_x is not None and object_last_seen_x < resolution[0]/2 and object_last_seen_x > 0:
                     moving_forward = 0
                     rotation_gain = -1
-                    rotation_gain = 0
-                    print("Rotating Left")
+                    print("Searching for object : Rotating Left")
                 elif object_last_seen_x is None:
                     rotation_gain = 1
             cv2.imshow('Webcam', img)
@@ -168,9 +168,10 @@ def seekObject(objectName):
         print(e)
         return False
 
-def move(movement):
-    return 0
-
+def move(gain_vector):
+    pass
+def movementToGain(movement):
+    pass
 
 #####CODE STARTS HERE!!
 playsound("Epiano Startup.wav")
