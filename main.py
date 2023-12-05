@@ -102,6 +102,7 @@ def seekObject(objectName):
                 timeout_start = time.time()
                 object_last_seen_x = -1
                 while time.time() < timeout_start + 10:
+                    object_in_frame = False
                     success, img = cap.read()
                     results = model(img, stream=True)
                     for r in results:
@@ -115,22 +116,23 @@ def seekObject(objectName):
                             # class name
                             cls = int(box.cls[0])
                             if object == classNames[cls]:
+                                object_in_frame = True
                                 timeout_start = time.time()
                                 print(f"Found {object}!" )
                                 object_last_seen_x = x1+(abs(x2-x1)/2)
-                                print(object_last_seen_x)
                                 move([[0,20,""]])
                                 if abs(x2-x1)*abs(y2-y1) > 200000:
                                     print("Object Reached!")
-                                    return(True)
+                                    return True
 
                             else:
-                                if object_last_seen_x > 320:
-                                    move([[30, -1, ""]])
-                                    print("Rotating Right")
-                                elif object_last_seen_x < 320 and object_last_seen_x>0:
-                                    move([[-30, -1, ""]])
-                                    print("Rotating Left")
+                                if object_in_frame ==  False:
+                                    if object_last_seen_x > 320:
+                                        move([[35, -1, ""]])
+                                        print("Rotating Right")
+                                    elif object_last_seen_x < 320 and object_last_seen_x>0:
+                                        move([[-35, -1, ""]])
+                                        print("Rotating Left")
 
                             # object details
                             org = [x1, y1]
