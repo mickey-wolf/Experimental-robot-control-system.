@@ -189,9 +189,10 @@ while True:
                 if movementInstruction[1]:
                     for movement in movementInstruction[0]:
                         if movement[2] != "":
-                            seekObject(movement[2])
+                            move(seekObject(movement[2]))
                         else:
-                            move(movement)
+                            move(movementToGain(movement))
+
 
 
     except Exception as e:
