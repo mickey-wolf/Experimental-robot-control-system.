@@ -20,14 +20,11 @@ def getSpeech():
     with sr.Microphone() as source:
         print("Listening...")
         audio = r.listen(source)
-    try:
-        detectedSpeech = ((r.recognize_whisper(audio, language="english")).lower()).translate(str.maketrans('', '', string.punctuation))
-        print("Recognized:" + detectedSpeech)
-        return (detectedSpeech)
-    except sr.UnknownValueError:
-        return -1
-    except sr.RequestError as e:
-        return -1
+
+    detectedSpeech = ((r.recognize_whisper(audio, language="english")).lower()).translate(str.maketrans('', '', string.punctuation))
+    print("Recognized:" + detectedSpeech)
+    return (detectedSpeech)
+
 
 
 def processVoiceMovementInstruction(instruct):  ## this model is shitty, gotta replace it.
@@ -37,7 +34,7 @@ def processVoiceMovementInstruction(instruct):  ## this model is shitty, gotta r
                           "required to move. DISTANCE is the absolute value of the "
                           "distance converted to centimeters that you are required to move. TGT should be "
                           "an empty string unless you are required to proceed towards an object. In that "
-                          "case, you must write the name of the object in this field. The default distance is -1,And the default direction is -1."
+                          "case, you must write the name of the object in this field. The default distance is 0,And the default direction is 0."
                           " You are not allowed to say anything but the "
                           "required vector. If multiple operations are required, write a Python list "
                           "which you append with a vector for each operation. If one operation is "
@@ -62,7 +59,7 @@ def processRawMovementInstruction(rawMovementCommand):
         return (movementCommand, True)
     except TypeError as e:
         print("rawMovementCommand Invalid"+e)
-        return ([[[-1, -1, ""]]], False)
+        return ([[[0, 0, ""]]], False)
 
 
 def speak(text):
@@ -82,73 +79,91 @@ def seekObject(objectName):
                   "teddy bear", "hair drier", "toothbrush"
                   ]
 
-    synonyms = []
+    syns = []
     for syn in wordnet.synsets(objectName):
         for i in syn.lemmas():
-            synonyms.append(i.name())
+            syns.append(i.name())
 
-    syns = synonyms
     syns = [f"{objectName}"] if len(syns) == 0 else syns
     try:
         for syn in syns:
             if (syn in classNames) or (objectName in classNames):
                 object = syn if syn in classNames else objectName
-                cap = cv2.VideoCapture(0)
-                cap.set(3, 640)
-                cap.set(4, 480)
-
-                model = YOLO("yolo-Weights/yolov8n.pt")
-
-                timeout_start = time.time()
-                object_last_seen_x = None
-                while time.time() < timeout_start + 10:
-                    object_in_frame = False
-                    success, img = cap.read()
-                    results = model(img, stream=True)
-                    for r in results:
-                        boxes = r.boxes
-                        for box in boxes:
-                            # bounding box
-                            x1, y1, x2, y2 = box.xyxy[0]
-                            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
-                            # put box in cam
-                            cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
-                            # class name
-                            cls = int(box.cls[0])
-                            if object == classNames[cls]:
-                                object_in_frame = True
-                                timeout_start = time.time()
-                                print(f"Found {object}!" )
-                                object_last_seen_x = x1+(abs(x2-x1)/2)
-                                move([[0,20,""]])
-                                if abs(x2-x1)*abs(y2-y1) > 200000:
-                                    print("Object Reached!")
-                                    return True
-                                break
-                            # object details
-                            org = [x1, y1]
-                            font = cv2.FONT_HERSHEY_SIMPLEX
-                            fontScale = 1
-                            color = (255, 0, 0)
-                            thickness = 2
-                            cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
-                    if object_in_frame == False:
-                        if object_last_seen_x is not None and object_last_seen_x > 320:
-                            move([[35, -1, ""]])
-                            print("Rotating Right")
-                        elif object_last_seen_x is not None and object_last_seen_x < 320 and object_last_seen_x > 0:
-                            move([[-35, -1, ""]])
-                            print("Rotating Left")
-                    cv2.imshow('Webcam', img)
-                    if cv2.waitKey(1) == ord('q'):
-                        break
-
-                cap.release()
-                cv2.destroyAllWindows()
+                break
             else:
                 raise Exception("Object Unknown To System.")
+        cap = cv2.VideoCapture(0)
+        resolution = (640,480)
+        center_zone_for_object = (0.25*resolution[0],0.75*resolution[0])
+        desired_pixel_occupancy = 2/3
+        cap.set(3, resolution[0])
+        cap.set(4, resolution[1])
 
-            break
+        model = YOLO("yolo-Weights/yolov8n.pt")
+
+        timeout_start = time.time()
+        object_last_seen_x = None
+        object_reached = False
+        while object_reached == False:
+            print(forward_gain,rotation_gain)
+            while time.time() < timeout_start + 10:
+                object_in_frame = False
+                success, img = cap.read()
+                results = model(img, stream=True)
+                for r in results:
+                    boxes = r.boxes
+                    for box in boxes:
+                        # bounding box
+                        x1, y1, x2, y2 = box.xyxy[0]
+                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
+                        object_box_area = (abs(x2-x1)*abs(y2-y1))
+                        cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
+
+                        cls = int(box.cls[0])
+                        if object == classNames[cls]:
+                            object_in_frame = True
+                            timeout_start = time.time()
+                            print(f"Found {object}!" )
+                            object_last_seen_x = x1+(abs(x2-x1)/2)
+                            if object_box_area > resolution[1]*resolution[0]*desired_pixel_occupancy:
+                                object_reached = True
+                                print("Object Reached!")
+                                return True
+
+                            elif object_last_seen_x < center_zone_for_object[1] and object_last_seen_x > center_zone_for_object[0]:
+                                forward_gain = desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area-1 if (
+                                        desired_pixel_occupancy*resolution[0]*resolution[1]/object_box_area > 1) else 0
+                            else:
+                                rotation_gain = 1/(resolution[0]/2)-object_last_seen_x
+                            break
+                        # object details
+                        org = [x1, y1]
+                        font = cv2.FONT_HERSHEY_SIMPLEX
+                        fontScale = 1
+                        color = (255, 0, 0)
+                        thickness = 2
+                        cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
+                if object_in_frame == False:
+                    if object_last_seen_x is not None and object_last_seen_x > resolution[0]/2:
+                        forward_gain = 0
+                        rotation_gain = 1
+                        print("Rotating Right")
+                    elif object_last_seen_x is not None and object_last_seen_x < resolution[0]/2 and object_last_seen_x > 0:
+                        moving_forward = 0
+                        rotation_gain = -1
+                        rotation_gain = 0
+                        print("Rotating Left")
+                    elif object_last_seen_x is None:
+                        rotation_gain = 1
+                cv2.imshow('Webcam', img)
+                if cv2.waitKey(1) == ord('q'):
+                    break
+
+        cap.release()
+        cv2.destroyAllWindows()
+
+
+
     except Exception as e:
         print(e)
         return False
@@ -164,21 +179,19 @@ while True:
         while True:
             wake_up_call = getSpeech()
             if wake_up_call == " command":
-                try:
-                    playsound('Epiano Wake Up heard.wav')
-                    voiceCommand = getSpeech()
-                    # answer = verbalResponseGenerator Need to define a function that responds to the question, with gpt.
-                    #speak()
-                    rawMovementInstruction = processVoiceMovementInstruction(voiceCommand)
-                    movementInstruction = processRawMovementInstruction(rawMovementInstruction)
-                    if movementInstruction[1] is True:
-                        for movement in movementInstruction[0]:
-                            if movement[2] != "":
-                                seekObject(movement[2])
-                            else:
-                                move((movement))
-                except Exception:
-                    break
+                playsound('Epiano Wake Up heard.wav')
+                voiceCommand = getSpeech()
+                # answer = verbalResponseGenerator Need to define a function that responds to the question, with gpt.
+                #speak()
+                rawMovementInstruction = processVoiceMovementInstruction(voiceCommand)
+                movementInstruction = processRawMovementInstruction(rawMovementInstruction)
+                if movementInstruction[1]:
+                    for movement in movementInstruction[0]:
+                        if movement[2] != "":
+                            seekObject(movement[2])
+                        else:
+                            move(movement)
+
 
     except Exception as e:
         playsound('Epiano Error.wav')
