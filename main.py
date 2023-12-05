@@ -100,7 +100,7 @@ def seekObject(objectName):
                 model = YOLO("yolo-Weights/yolov8n.pt")
 
                 timeout_start = time.time()
-                object_last_seen_x = -1
+                object_last_seen_x = None
                 while time.time() < timeout_start + 10:
                     object_in_frame = False
                     success, img = cap.read()
@@ -124,25 +124,21 @@ def seekObject(objectName):
                                 if abs(x2-x1)*abs(y2-y1) > 200000:
                                     print("Object Reached!")
                                     return True
-
-                            else:
-                                if object_in_frame ==  False:
-                                    if object_last_seen_x > 320:
-                                        move([[35, -1, ""]])
-                                        print("Rotating Right")
-                                    elif object_last_seen_x < 320 and object_last_seen_x>0:
-                                        move([[-35, -1, ""]])
-                                        print("Rotating Left")
-
+                                break
                             # object details
                             org = [x1, y1]
                             font = cv2.FONT_HERSHEY_SIMPLEX
                             fontScale = 1
                             color = (255, 0, 0)
                             thickness = 2
-
                             cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
-
+                    if object_in_frame == False:
+                        if object_last_seen_x is not None and object_last_seen_x > 320:
+                            move([[35, -1, ""]])
+                            print("Rotating Right")
+                        elif object_last_seen_x is not None and object_last_seen_x < 320 and object_last_seen_x > 0:
+                            move([[-35, -1, ""]])
+                            print("Rotating Left")
                     cv2.imshow('Webcam', img)
                     if cv2.waitKey(1) == ord('q'):
                         break
