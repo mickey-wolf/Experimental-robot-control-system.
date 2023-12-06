@@ -5,15 +5,15 @@ from gpt4all import GPT4All
 import pyttsx3
 import time
 engine = pyttsx3.init()
-model = GPT4All("mistral-7b-instruct-v0.1.Q4_0.gguf", device="gpu")
+model = GPT4All("mistral-7b-instruct-v0.1.Q4_0.gguf")
 import string
 from ultralytics import YOLO
 import cv2
 import math
-# import nltk
-# nltk.download('wordnet')
+import nltk
+nltk.download('wordnet')
 import time
-# from nltk.corpus import wordnet
+from nltk.corpus import wordnet
 
 def getSpeech():
     r = sr.Recognizer()
@@ -48,19 +48,18 @@ def processVoiceMovementInstruction(instruct):  ## this model is shitty, gotta r
 
 
 def processRawMovementInstruction(rawMovementCommand):
-    movementCommand = []
+    movementCommand = eval(rawMovementCommand)
     try:
-        for movement in eval(rawMovementCommand.rstrip()):
-            print(f"Current movement is {movement}")
+        for movement in movementCommand:
             if type(int(movement[0])) is int and type(int(movement[1])) is int and type(movement[2]) is str:
-                movementCommand.append(movement)
+                pass
             else:
                 raise TypeError
-        print("Movement Command Recieved is: "+ movementCommand)
+        print("Movement Command Recieved is: " + str(movementCommand))
         return (movementCommand, True)
-    except TypeError as e:
-        print("rawMovementCommand Invalid"+e)
-        return ([[[0, 0, ""]]], False)
+    except TypeError:
+        print("rawMovementCommand Invalid")
+        return ([[[0, -1, ""]]], False)
 
 
 def speak(text):
@@ -74,29 +73,27 @@ def seekObject(objectName):
                   "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat",
                   "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
                   "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli",
-                  "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
+                  "carrot", "hot dog", "pizza", "cake", "chair", "sofa", "pottedplant", "bed",
                   "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
                   "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
                   "teddy bear", "hair drier", "toothbrush"
                   ]
 
-    # syns = []
-    # for syn in wordnet.synsets(objectName):
-    #     for i in syn.lemmas():
-    #         syns.append(i.name())
-    # syns = set(syns)
-    # syns = {objectName} if len(syns) == 0 else syns
-    # objectKnown = False
-    # print(syns)
+    syns = []
+    for syn in wordnet.synsets(objectName):
+        for i in syn.lemmas():
+            syns.append(i.name())
+    syns = set(syns)
+    syns = {objectName} if len(syns) == 0 else syns
+    objectKnown = False
+    print(syns)
     try:
-        # for syn in syns:
-        #     if (syn in classNames) or (objectName in classNames):
-        #         object = syn if syn in classNames else objectName
-        #         objectKnown = True
-        if objectName not in seekObject():
-            raise Exception("Object Unknown To System.")
+        for syn in syns:
+            if (syn in classNames) or (objectName in classNames):
+                object = syn if syn in classNames else objectName
+                objectKnown = True
         cap = cv2.VideoCapture(0)
-        resolution = (128, 128)
+        resolution = (640, 480)
         total_area = resolution[0]*resolution[1]
         center_zone_for_object = (0.25*resolution[0],0.75*resolution[0])
         desired_pixel_occupancy = 2/3
@@ -124,7 +121,7 @@ def seekObject(objectName):
                         timeout_start = time.time()
                         print(f"Found {object}!" )
                         x1, y1, x2, y2 = box.xyxy[0]
-                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)  # convert to int values
+                        x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
                         object_box_area = (abs(x2 - x1) * abs(y2 - y1))
                         cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
                         object_last_seen_x = x1+(abs(x2-x1)/2)
@@ -141,30 +138,27 @@ def seekObject(objectName):
 
                         elif object_last_seen_x < center_zone_for_object[1] and object_last_seen_x > center_zone_for_object[0]:
                             forward_gain = (total_area*desired_pixel_occupancy-object_box_area)/total_area*desired_pixel_occupancy
-                            print(f"Object ahead! \n"
-                                  f"Moving forward gain is: {forward_gain}")
+                            rotation_gain = 0
+
                         else:
                             rotation_gain = -(resolution[0]/2-object_last_seen_x)/(resolution[0]/2)
-                            print(f"Rotating towards object.\n"
-                                  f"Rotation gain is: {rotation_gain}")
+                            forward_gain = (
+                                                       total_area * desired_pixel_occupancy - object_box_area) / total_area * desired_pixel_occupancy
                         break
 
 
             if object_in_frame == False:
-                if object_last_seen_x is not None and object_last_seen_x > resolution[0]/2:
-                    forward_gain = 0
+                if object_last_seen_x is None:
                     rotation_gain = 1
-                    print("Searching for object: Rotating Right")
-                elif object_last_seen_x is not None and object_last_seen_x < resolution[0]/2 and object_last_seen_x > 0:
-                    moving_forward = 0
-                    rotation_gain = -1
-                    print("Searching for object : Rotating Left")
-                elif object_last_seen_x is None:
-                    rotation_gain = 1
+                    print(f"Looking for {object}")
             cv2.imshow('Webcam', img)
             if cv2.waitKey(1) == ord('q'):
                 break
+            print(f"Forward Gain is {forward_gain}\n"
+                  f"Rotation Gain is {rotation_gain}")
 
+        if object_last_seen_x == None:
+            raise Exception("Object Not Found")
         cap.release()
         cv2.destroyAllWindows()
     except Exception as e:
@@ -183,6 +177,7 @@ while True:
         while True:
             wake_up_call = getSpeech()
             if wake_up_call == " command":
+                print('Woke Up!')
                 playsound('Epiano Wake Up heard.wav')
                 voiceCommand = getSpeech()
                 # answer = verbalResponseGenerator Need to define a function that responds to the question, with gpt.
@@ -191,8 +186,13 @@ while True:
                 movementInstruction = processRawMovementInstruction(rawMovementInstruction)
                 if movementInstruction[1]:
                     for movement in movementInstruction[0]:
-                        if movement[2] != "":
-                            move(seekObject(movement[2]))
+                        objectName = movement[2]
+                        if objectName != "":
+                            print(objectName)
+                            if seekObject(objectName):
+                                # speak(f"{objectName} reached!")
+                            else:
+                                # speak(f"{objectName} could not be found, or i cannot recognize it.")
                         else:
                             move(movementToGain(movement))
 
