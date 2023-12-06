@@ -125,15 +125,17 @@ def seekObject(objectName):
                         object_box_area = (abs(x2 - x1) * abs(y2 - y1))
                         cv2.rectangle(img, (x1, y1), (x2, y2), (255, 0, 255), 3)
                         object_last_seen_x = x1+(abs(x2-x1)/2)
-                        org = [x1, y1]
-                        font = cv2.FONT_HERSHEY_SIMPLEX
-                        fontScale = 1
-                        color = (255, 0, 0)
-                        thickness = 2
-                        cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
+                        # org = [x1, y1]
+                        # font = cv2.FONT_HERSHEY_SIMPLEX
+                        # fontScale = 1
+                        # color = (255, 0, 0)
+                        # thickness = 2
+                        # cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
                         if object_box_area > resolution[1]*resolution[0]*desired_pixel_occupancy:
                             object_reached = True
                             print("Object Reached!")
+                            cap.release()
+                            # cv2.destroyAllWindows()
                             return True
 
                         elif object_last_seen_x < center_zone_for_object[1] and object_last_seen_x > center_zone_for_object[0]:
@@ -151,9 +153,9 @@ def seekObject(objectName):
                 if object_last_seen_x is None:
                     rotation_gain = 1
                     print(f"Looking for {object}")
-            cv2.imshow('Webcam', img)
-            if cv2.waitKey(1) == ord('q'):
-                break
+            # cv2.imshow('Webcam', img)
+            # if cv2.waitKey(1) == ord('q'):
+            #     break
             print(f"Forward Gain is {forward_gain}\n"
                   f"Rotation Gain is {rotation_gain}")
 
@@ -176,23 +178,23 @@ while True:
     try:
         while True:
             wake_up_call = getSpeech()
-            if wake_up_call == " command":
+            if wake_up_call == " wake up":
                 print('Woke Up!')
                 playsound('Epiano Wake Up heard.wav')
                 voiceCommand = getSpeech()
                 # answer = verbalResponseGenerator Need to define a function that responds to the question, with gpt.
                 #speak()
                 rawMovementInstruction = processVoiceMovementInstruction(voiceCommand)
-                movementInstruction = processRawMovementInstruction(rawMovementInstruction)
+                movementInstruction = processRawMovementInstruction(rawMovementCommand)
                 if movementInstruction[1]:
                     for movement in movementInstruction[0]:
                         objectName = movement[2]
                         if objectName != "":
                             print(objectName)
                             if seekObject(objectName):
-                                # speak(f"{objectName} reached!")
+                                playsound("task complete.wav")
                             else:
-                                # speak(f"{objectName} could not be found, or i cannot recognize it.")
+                                playsound("task failed.wav")
                         else:
                             move(movementToGain(movement))
 
