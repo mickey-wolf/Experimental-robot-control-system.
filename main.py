@@ -173,7 +173,7 @@ def movementToGain(movement):
     pass
 
 #####CODE STARTS HERE!!
-playsound("task complete.wav")
+playsound("ready.wav")
 while True:
     try:
         while True:
