@@ -83,33 +83,34 @@ def seekObject(objectName):
     for syn in wordnet.synsets(objectName):
         for i in syn.lemmas():
             syns.append(i.name())
-
-    syns = [f"{objectName}"] if len(syns) == 0 else syns
+    syns = set(syns)
+    syns = {objectName} if len(syns) == 0 else syns
+    objectKnown = False
+    print(syns)
     try:
         for syn in syns:
             if (syn in classNames) or (objectName in classNames):
                 object = syn if syn in classNames else objectName
-                break
-            else:
-                raise Exception("Object Unknown To System.")
+                objectKnown = True
+        if objectKnown == False:
+            raise Exception("Object Unknown To System.")
         cap = cv2.VideoCapture(0)
-        resolution = (640,480)
+        resolution = (416,416)
         total_area = resolution[0]*resolution[1]
         center_zone_for_object = (0.25*resolution[0],0.75*resolution[0])
         desired_pixel_occupancy = 2/3
         cap.set(3, resolution[0])
         cap.set(4, resolution[1])
 
-        model = YOLO("yolo-Weights/yolov8n.pt")
+        model = YOLO("yolo-Weights/yolov3-tinyu.pt")
 
         timeout_start = time.time()
         object_last_seen_x = None
+        object_reached = False
         forward_gain = 0
         rotation_gain = 0
 
         while time.time() < timeout_start + 10:
-            gain_vector = (rotation_gain,forward_gain)
-            move(gain_vector)
             object_in_frame = False
             success, img = cap.read()
             results = model(img, stream=True)
@@ -133,6 +134,7 @@ def seekObject(objectName):
                         thickness = 2
                         cv2.putText(img, classNames[cls], org, font, fontScale, color, thickness)
                         if object_box_area > resolution[1]*resolution[0]*desired_pixel_occupancy:
+                            object_reached = True
                             print("Object Reached!")
                             return True
 
