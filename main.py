@@ -79,7 +79,7 @@ def seekObject(objectName):
                   "teddy bear", "hair drier", "toothbrush"
                   ]
 
-    syns = []
+    syns = {}
     for syn in wordnet.synsets(objectName):
         for i in syn.lemmas():
             syns.append(i.name())
