@@ -79,23 +79,23 @@ def seekObject(objectName):
                   "teddy bear", "hair drier", "toothbrush"
                   ]
 
-    syns = {}
-    for syn in wordnet.synsets(objectName):
-        for i in syn.lemmas():
-            syns.append(i.name())
-    syns = set(syns)
-    syns = {objectName} if len(syns) == 0 else syns
-    objectKnown = False
-    print(syns)
+    # syns = []
+    # for syn in wordnet.synsets(objectName):
+    #     for i in syn.lemmas():
+    #         syns.append(i.name())
+    # syns = set(syns)
+    # syns = {objectName} if len(syns) == 0 else syns
+    # objectKnown = False
+    # print(syns)
     try:
-        for syn in syns:
-            if (syn in classNames) or (objectName in classNames):
-                object = syn if syn in classNames else objectName
-                objectKnown = True
-        if objectKnown == False:
+        # for syn in syns:
+        #     if (syn in classNames) or (objectName in classNames):
+        #         object = syn if syn in classNames else objectName
+        #         objectKnown = True
+        if objectName not in seekObject():
             raise Exception("Object Unknown To System.")
         cap = cv2.VideoCapture(0)
-        resolution = (416,416)
+        resolution = (128, 128)
         total_area = resolution[0]*resolution[1]
         center_zone_for_object = (0.25*resolution[0],0.75*resolution[0])
         desired_pixel_occupancy = 2/3
@@ -147,7 +147,7 @@ def seekObject(objectName):
                             print(f"Rotating towards object.\n"
                                   f"Rotation gain is: {rotation_gain}")
                         break
-                    # object details
+
 
             if object_in_frame == False:
                 if object_last_seen_x is not None and object_last_seen_x > resolution[0]/2:
