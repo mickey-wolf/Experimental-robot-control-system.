@@ -173,7 +173,7 @@ def movementToGain(movement):
     pass
 
 #####CODE STARTS HERE!!
-playsound("Epiano Startup.wav")
+playsound("task complete.wav")
 while True:
     try:
         while True:
@@ -185,7 +185,7 @@ while True:
                 # answer = verbalResponseGenerator Need to define a function that responds to the question, with gpt.
                 #speak()
                 rawMovementInstruction = processVoiceMovementInstruction(voiceCommand)
-                movementInstruction = processRawMovementInstruction(rawMovementCommand)
+                movementInstruction = processRawMovementInstruction(rawMovementInstruction)
                 if movementInstruction[1]:
                     for movement in movementInstruction[0]:
                         objectName = movement[2]
