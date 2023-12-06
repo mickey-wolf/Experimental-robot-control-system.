@@ -10,10 +10,10 @@ import string
 from ultralytics import YOLO
 import cv2
 import math
-import nltk
-nltk.download('wordnet')
+# import nltk
+# nltk.download('wordnet')
 import time
-from nltk.corpus import wordnet
+# from nltk.corpus import wordnet
 
 def getSpeech():
     r = sr.Recognizer()
@@ -31,10 +31,11 @@ def processVoiceMovementInstruction(instruct):  ## this model is shitty, gotta r
     with model.chat_session(
             system_prompt="If an instruction requires you to move somewhere, you must only return the vector (DIRECTION, DISTANCE, "
                           "TGT) where DIRECTION is an integer that represents the angle in degrees in which you are "
-                          "required to move. DISTANCE is the absolute value of the "
+                          "required to move. It can be between -180 to 180. DISTANCE is the absolute value of the "
                           "distance converted to centimeters that you are required to move. TGT should be "
                           "an empty string unless you are required to proceed towards an object. In that "
-                          "case, you must write the name of the object in this field. The default distance is 0,And the default direction is 0."
+                          "case, you must write the name of the object in this field. If TGT represents a person, and not an object, replace the TGT string with the string 'person'"
+                          ". The default DISTANCE is 0, And the default DIRECTION is 0."
                           " You are not allowed to say anything but the "
                           "required vector. If multiple operations are required, write a Python list "
                           "which you append with a vector for each operation. If one operation is "
