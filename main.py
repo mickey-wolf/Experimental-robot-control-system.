@@ -79,11 +79,27 @@ def seekObject(objectName):
                   "teddy bear", "hair drier", "toothbrush"
                   ]
 
-    syns = []
-    for syn in wordnet.synsets(objectName):
-        for i in syn.lemmas():
-            syns.append(i.name())
-    syns = set(syns)
+
+    synsets = wordnet.synsets(objectName)
+
+    # Collect all lemma names from synsets
+    lemma_names = [lemma.name() for synset in synsets for lemma in synset.lemmas()]
+
+    # Remove duplicates
+    unique_lemmas = set(lemma_names)
+
+    # Exclude the original word from the list
+    unique_lemmas.discard(objectName)
+
+    # Get hypernyms (more abstract terms) and hyponyms (more specific terms)
+    hypernyms = set()
+    for synset in synsets:
+        hypernyms.update([hypernym.name() for hypernym in synset.hypernyms()])
+
+    # Combine synonyms and hypernyms
+    syns = list(unique_lemmas.union(hypernyms))[:10]
+
+    return syns
     syns = {objectName} if len(syns) == 0 else syns
     objectKnown = False
     print(syns)
