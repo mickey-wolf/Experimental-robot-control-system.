@@ -21,7 +21,7 @@ def getSpeech():
         print("Listening...")
         audio = r.listen(source)
 
-    detectedSpeech = ((r.recognize_whisper(audio, language="english")).lower()).translate(str.maketrans('', '', string.punctuation))
+    detectedSpeech = ((r.recognize_google(audio, language="english")).lower()).translate(str.maketrans('', '', string.punctuation))
     print("Recognized:" + detectedSpeech)
     return (detectedSpeech)
 
