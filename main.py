@@ -173,10 +173,11 @@ def movementToGain(movement):
     pass
 
 #####CODE STARTS HERE!!
-playsound("ready.wav")
+playsound("startup new.wav")
 while True:
     try:
         while True:
+            playsound("ready.wav")
             wake_up_call = getSpeech()
             if wake_up_call == " wake up":
                 print('Woke Up!')
