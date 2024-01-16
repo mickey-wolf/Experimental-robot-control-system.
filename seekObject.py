@@ -95,9 +95,9 @@ def seekObject(objectName):
 
             if object_in_frame == False:
                 forward_gain = 0
-                if object_last_seen_x is None:
-                    rotation_gain = 1
-                    print(f"Looking for {object}")
+            else:
+                rotation_gain = 1
+                print(f"Looking for {object}")
             cv2.imshow('Webcam', img)
             if cv2.waitKey(1) == ord('q'):
                 break
