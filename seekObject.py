@@ -30,7 +30,7 @@ def seekObject(objectName):
     try:
         for syn in syns:
             if (syn in classNames) or (objectName in classNames):
-                object = syn if syn in classNames else objectName
+                object = syn.lower() if syn in classNames else objectName.lower()
                 objectKnown = True
         if not objectKnown:
             raise Exception('Object Unknown')
@@ -92,12 +92,14 @@ def seekObject(objectName):
                                                        total_area * desired_pixel_occupancy - object_box_area) / total_area * desired_pixel_occupancy
                         break
 
-
             if object_in_frame == False:
                 forward_gain = 0
-            else:
-                rotation_gain = 1
-                print(f"Looking for {object}")
+                if object_last_seen_x is None:
+                    rotation_gain = 1
+                    print(f"Looking for {object}")
+                else:
+                    rotation_gain = -(resolution[0] / 2 - object_last_seen_x) / (resolution[0] / 2)
+                    print(f"Reacquiring {object}")
             cv2.imshow('Webcam', img)
             if cv2.waitKey(1) == ord('q'):
                 break
@@ -115,4 +117,4 @@ def seekObject(objectName):
         movement.move(0, 0)
         return False
 
-seekObject("pottedplant")
+seekObject("person")
