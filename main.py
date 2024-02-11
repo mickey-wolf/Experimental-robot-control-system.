@@ -66,7 +66,7 @@ def speak(text):
 def movementToGain(movement):
     pass
 
-#####CODE STARTS HERE!!
+#####CODE STARTS HERE!
 playsound("startup new.wav")
 while True:
     try:

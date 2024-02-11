@@ -7,7 +7,7 @@ leftForward = board.get_pin('d:3:o')
 leftBackward = board.get_pin('d:2:o')
 rightForward = board.get_pin('d:5:o')
 rightBackward = board.get_pin('d:4:o')
-def move(forwardgain,rotationgain): #Only temporary, doesnt enable continous movement.
+def move(forwardgain,rotationgain): #Only temporary, doesnt enable continous movement..
     # if rotationgain > 0:
     #     leftForward.write(1)
     #     leftBackward.write(0)

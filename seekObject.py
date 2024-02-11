@@ -117,4 +117,4 @@ def seekObject(objectName):
         movement.move(0, 0)
         return False
 
-seekObject("person")
+seekObject("person.")
